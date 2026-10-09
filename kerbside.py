@@ -955,8 +955,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--fresh", action="store_true", help="ignore cached transcript/findings")
     ap.add_argument("--render-only", action="store_true", help="rebuild map.html/report.md from findings.geojson")
     ap.add_argument("--title", default="Kerbside Street Audit", help="title for map and report")
+    ap.add_argument("--app", action="store_true", help="open the Kerbside app in your browser instead")
     args = ap.parse_args(argv)
-    if not args.render_only and not (args.audio and args.gpx):
+    if not (args.render_only or args.app) and not (args.audio and args.gpx):
         ap.error("give the audio file and the GPX track, e.g. python kerbside.py WALK.m4a TRACK.gpx")
     return args
 
@@ -1040,6 +1041,10 @@ def main(argv: list[str] | None = None) -> int:
             pass
     args = parse_args(argv)
     try:
+        if args.app:
+            import kerbside_app
+            kerbside_app.serve(Path(args.out), args.model, args.whisper)
+            return 0
         run(args)
     except KerbsideError as exc:
         print(f"\nError: {exc}", file=sys.stderr)

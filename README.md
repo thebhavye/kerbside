@@ -59,7 +59,23 @@ still needs internet.)
 6. Get the files to your laptop: in Open GPX Tracker, share the `.gpx` file; in Voice Memos, share the
    memo (`.m4a`). Email them to yourself, upload to Google Drive, or use iCloud for Windows.
 
-## Running it
+## The Kerbside app (easiest)
+
+```powershell
+python kerbside.py --app
+```
+
+This opens Kerbside in your browser. Drop in the `.m4a` and the `.gpx`, press **Find street problems**,
+and watch it work through the five steps (with a time estimate while Gemma runs). When it's done you
+land on the review screen: every finding sits on the map next to an editable card. Fix the category,
+severity or wording, delete anything wrong, drag a circle to where the problem really is, then press
+**Save changes** and the map, report and CSV are rebuilt. Past walks are listed on the home page, so you
+can come back and review later.
+
+The app is a small web server that listens only on `127.0.0.1`: no other device can reach it, and it
+runs exactly the same pipeline as the command line below. Walks are kept in `kerbside_out\walks\`.
+
+## Running it from the command line
 
 ```powershell
 python kerbside.py "New Recording.m4a" "walk.gpx"

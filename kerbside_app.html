@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kerbside</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+:root{--ink:#1a1a1a;--muted:#5b5b5b;--line:#ddd;--bg:#f6f6f3;--card:#fff;--accent:#1f6f43;--warn:#a15c00;--bad:#b3261e}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:12px 20px;background:var(--card);
+  border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:1.3rem}
+header .tag{color:var(--muted);font-size:.9rem}
+header .local{margin-left:auto;font-size:.8rem;color:var(--accent);font-weight:600}
+main{max-width:980px;margin:0 auto;padding:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+.card h2{margin:0 0 12px;font-size:1.05rem}
+.drops{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.drop{display:block;border:2px dashed #bbb;border-radius:10px;padding:18px;text-align:center;cursor:pointer;
+  background:#fafafa}
+.drop.over{border-color:var(--accent);background:#eef6f0}
+.drop.has{border-style:solid;border-color:var(--accent)}
+.drop b{display:block;margin-bottom:4px}
+.drop span{color:var(--muted);font-size:.85rem;word-break:break-all}
+.drop input{display:none}
+label.field{display:block;margin:12px 0 4px;font-size:.85rem;color:var(--muted)}
+input[type=text],input[type=number],input[type=datetime-local],select,textarea{width:100%;padding:8px 10px;
+  border:1px solid #ccc;border-radius:6px;font:inherit;background:#fff;color:var(--ink)}
+details.adv{margin-top:12px}
+details.adv summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid #bbb;background:#fff;color:var(--ink);padding:8px 14px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}
+.actions{margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.msg{font-size:.9rem;color:var(--muted)}
+.msg.err{color:var(--bad)}
+.stages{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding:0;list-style:none}
+.stages li{font-size:.8rem;padding:4px 8px;border-radius:12px;background:#eee;color:var(--muted)}
+.stages li.done{background:#dcefe2;color:var(--accent)}
+.stages li.now{background:var(--accent);color:#fff}
+.bar{height:10px;background:#eee;border-radius:5px;overflow:hidden}
+.bar div{height:100%;background:var(--accent);width:0;transition:width .4s}
+pre.log{background:#111;color:#ddd;font-size:12px;line-height:1.4;padding:10px;border-radius:6px;
+  max-height:260px;overflow:auto;white-space:pre-wrap;margin:10px 0 0}
+.error{background:#fdecea;border:1px solid #f5c2bd;color:var(--bad);padding:10px 12px;border-radius:6px;
+  white-space:pre-wrap;margin-top:10px}
+table.walks{width:100%;border-collapse:collapse;font-size:.9rem}
+table.walks td{padding:8px 6px;border-top:1px solid var(--line)}
+table.walks td.r{text-align:right}
+.pill{font-size:.75rem;padding:2px 8px;border-radius:10px;background:#eee}
+.pill.done{background:#dcefe2;color:var(--accent)}
+.pill.error{background:#fdecea;color:var(--bad)}
+.pill.running{background:#fff3cd;color:var(--warn)}
+/* review */
+#review{display:none;height:calc(100% - 56px)}
+#review.on{display:flex;flex-direction:column}
+.rbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--card);
+  border-bottom:1px solid var(--line)}
+.rbar h2{margin:0;font-size:1rem;flex:1;min-width:160px}
+.rbar a{font-size:.85rem}
+.rbody{flex:1;display:flex;min-height:0}
+#rmap{flex:1;min-height:300px}
+.list{width:400px;overflow:auto;border-left:1px solid var(--line);background:var(--bg);padding:10px}
+.f{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px}
+.f.sel{outline:2px solid var(--accent)}
+.f.gone{display:none}
+.f .top{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.f .dot{width:14px;height:14px;border-radius:50%;flex:none}
+.f .top select{flex:1}
+.f .two{display:grid;grid-template-columns:1fr auto;gap:8px;margin:6px 0}
+.f textarea{min-height:76px;resize:vertical}
+.f .q{font-size:.8rem;color:var(--muted);font-style:italic;margin:6px 0}
+.f .meta{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--muted);gap:8px}
+.f .meta label{display:flex;gap:4px;align-items:center}
+.f button.del{color:var(--bad);border-color:#e6b8b4;padding:4px 10px;font-size:.8rem}
+.pin{border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.pin.rev{border:2px dashed #222}
+.pin.sel{box-shadow:0 0 0 3px #111}
+.hint{font-size:.8rem;color:var(--muted);margin:0 0 10px}
+@media (max-width:760px){.drops,.row{grid-template-columns:1fr}.rbody{flex-direction:column}
+  .list{width:auto;border-left:0;border-top:1px solid var(--line);max-height:50vh}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Kerbside</h1>
+  <span class="tag">Walk your street, talk about what's broken, get a map.</span>
+  <span class="local">Runs on this laptop. Nothing is uploaded.</span>
+</header>
+
+<main id="home">
+  <section class="card" id="newcard">
+    <h2>New walk</h2>
+    <div class="drops">
+      <label class="drop" id="drop-audio"><input type="file" accept=".m4a,.mp3,.wav,.aac,.mp4,.ogg,.opus,.flac,.webm,audio/*">
+        <b>Voice recording</b><span>Drop your .m4a here or click to choose</span></label>
+      <label class="drop" id="drop-gpx"><input type="file" accept=".gpx">
+        <b>GPS track</b><span>Drop your .gpx here or click to choose</span></label>
+    </div>
+    <label class="field" for="title">Title for the map and report</label>
+    <input type="text" id="title" value="Kerbside Street Audit" maxlength="200">
+    <details class="adv"><summary>Timing options (only if the map positions look off)</summary>
+      <div class="row">
+        <div><label class="field" for="start">Recording started at (local time)</label>
+          <input type="datetime-local" id="start" step="1"></div>
+        <div><label class="field" for="offset">Shift audio by (seconds)</label>
+          <input type="number" id="offset" value="0" step="1"></div>
+        <div><label class="field" for="tz">Timezone</label>
+          <input type="text" id="tz" value="Asia/Kolkata"></div>
+      </div>
+    </details>
+    <div class="actions">
+      <button class="primary" id="go" disabled>Find street problems</button>
+      <span class="msg" id="gomsg">Add both files to start.</span>
+    </div>
+  </section>
+
+  <section class="card" id="progress" hidden>
+    <h2 id="ptitle">Processing</h2>
+    <ul class="stages" id="stages">
+      <li>1 GPS track</li><li>2 Transcribing</li><li>3 Placing on map</li><li>4 Finding problems</li><li>5 Writing outputs</li>
+    </ul>
+    <div class="bar"><div id="pbar"></div></div>
+    <div class="actions" style="margin-top:8px"><span class="msg" id="pmsg">Starting…</span></div>
+    <div class="error" id="perr" hidden></div>
+    <details><summary class="msg">Show details</summary><pre class="log" id="plog"></pre></details>
+  </section>
+
+  <section class="card">
+    <h2>Your walks</h2>
+    <p class="msg" id="nowalks">No walks yet.</p>
+    <table class="walks" id="walks"></table>
+  </section>
+</main>
+
+<section id="review">
+  <div class="rbar">
+    <button id="back">&larr; Walks</button>
+    <h2 id="rtitle"></h2>
+    <span class="msg" id="rmsg"></span>
+    <button class="primary" id="save" disabled>Save changes</button>
+    <span id="dl"></span>
+  </div>
+  <div class="rbody">
+    <div id="rmap"></div>
+    <div class="list">
+      <p class="hint">Check each finding. Fix the category, severity or wording, delete anything wrong,
+        and drag a circle on the map if it is in the wrong place. Then save: the report, CSV and map are rebuilt.</p>
+      <div id="flist"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+"use strict";
+const H = {"X-Kerbside": "1"};
+let META = null, files = {audio: null, gpx: null}, poll = null;
+const $ = function(id){ return document.getElementById(id); };
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+  return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]; }); }
+function api(path, opts){
+  opts = opts || {};
+  return fetch(path, opts).then(function(r){
+    return r.text().then(function(t){
+      let body = null;
+      try { body = t ? JSON.parse(t) : null; } catch (e) { body = t; }
+      if (!r.ok) throw new Error((body && body.error) || ("HTTP " + r.status));
+      return body;
+    });
+  });
+}
+
+/* ---------- new walk ---------- */
+function setupDrop(kind){
+  const el = $("drop-" + kind), input = el.querySelector("input"), span = el.querySelector("span");
+  function take(f){
+    if (!f) return;
+    files[kind] = f; span.textContent = f.name + " (" + (f.size / 1048576).toFixed(1) + " MB)";
+    el.classList.add("has"); refreshGo();
+  }
+  input.addEventListener("change", function(){ take(input.files[0]); });
+  ["dragenter", "dragover"].forEach(function(ev){ el.addEventListener(ev, function(e){ e.preventDefault(); el.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function(ev){ el.addEventListener(ev, function(e){ e.preventDefault(); el.classList.remove("over"); }); });
+  el.addEventListener("drop", function(e){ take(e.dataTransfer.files[0]); });
+}
+function refreshGo(){
+  const ok = files.audio && files.gpx;
+  $("go").disabled = !ok;
+  $("gomsg").textContent = ok ? "Ready. This takes a few minutes; you can leave the page open." : "Add both files to start.";
+  $("gomsg").className = "msg";
+}
+function startWalk(){
+  $("go").disabled = true;
+  const say = function(t, err){ $("gomsg").textContent = t; $("gomsg").className = err ? "msg err" : "msg"; };
+  say("Creating walk…");
+  const start = $("start").value ? $("start").value.replace("T", " ") : "";
+  let walk;
+  api("/api/walks", {method: "POST", headers: Object.assign({"Content-Type": "application/json"}, H),
+    body: JSON.stringify({title: $("title").value, start: start, offset: $("offset").value, tz: $("tz").value})})
+  .then(function(w){
+    walk = w;
+    say("Copying the recording into the walk folder…");
+    return api("/api/walks/" + w.id + "/upload?kind=audio&filename=" + encodeURIComponent(files.audio.name),
+               {method: "PUT", headers: H, body: files.audio});
+  })
+  .then(function(){
+    say("Copying the GPS track…");
+    return api("/api/walks/" + walk.id + "/upload?kind=gpx&filename=" + encodeURIComponent(files.gpx.name),
+               {method: "PUT", headers: H, body: files.gpx});
+  })
+  .then(function(){ return api("/api/walks/" + walk.id + "/start", {method: "POST", headers: H}); })
+  .then(function(){ say(""); watch(walk.id); loadWalks(); })
+  .catch(function(e){ say(e.message, true); $("go").disabled = false; });
+}
+
+/* ---------- progress ---------- */
+function watch(id){
+  $("progress").hidden = false; $("perr").hidden = true;
+  clearInterval(poll);
+  const tick = function(){
+    api("/api/walks/" + id).then(function(s){
+      $("ptitle").textContent = "Processing: " + s.title;
+      $("pbar").style.width = s.progress + "%";
+      Array.prototype.forEach.call($("stages").children, function(li, i){
+        li.className = (i + 1 < s.stage || s.state === "done") ? "done" : (i + 1 === s.stage ? "now" : "");
+      });
+      const log = $("plog"), atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+      log.textContent = s.log.join("\n");
+      if (atEnd) log.scrollTop = log.scrollHeight;
+      const names = ["Starting…", "Reading the GPS track…", "Transcribing your voice (the first run also downloads Whisper)…",
+                     "Placing what you said on the route…", "Gemma is finding street problems…", "Writing the map and report…"];
+      $("pmsg").textContent = (names[s.stage] || "Working…") + (s.eta ? " " + s.eta + "." : "");
+      if (s.state === "done") {
+        clearInterval(poll); $("pmsg").textContent = "Done. " + s.findings + " findings. Opening review…";
+        loadWalks(); setTimeout(function(){ $("progress").hidden = true; openReview(id); }, 800);
+      } else if (s.state === "error") {
+        clearInterval(poll); $("perr").hidden = false; $("perr").textContent = s.error;
+        $("pmsg").textContent = "Stopped."; refreshGo(); loadWalks();
+      }
+    }).catch(function(e){ $("pmsg").textContent = "Lost contact with the app: " + e.message; });
+  };
+  tick(); poll = setInterval(tick, 1000);
+}
+
+/* ---------- walk list ---------- */
+function loadWalks(){
+  api("/api/walks").then(function(list){
+    $("nowalks").hidden = list.length > 0;
+    $("walks").innerHTML = list.map(function(w){
+      const when = (w.created || "").replace("T", " ").slice(0, 16);
+      const action = w.state === "done" ? '<button data-open="' + w.id + '">Review</button>'
+        : w.state === "running" ? '<button data-watch="' + w.id + '">Progress</button>' : "";
+      return "<tr><td><b>" + esc(w.title) + "</b><br><span class=msg>" + esc(when) + "</span></td>" +
+        '<td><span class="pill ' + esc(w.state) + '">' + esc(w.state) + "</span></td>" +
+        "<td>" + (w.findings == null ? "" : w.findings + " findings") + '</td><td class="r">' + action + "</td></tr>";
+    }).join("");
+  });
+}
+$("walks").addEventListener("click", function(e){
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.open) openReview(b.dataset.open);
+  if (b.dataset.watch) watch(b.dataset.watch);
+});
+
+/* ---------- review ---------- */
+let R = null;  // {id, map, feats, markers, dirty}
+function color(cat){ return (META.categories[cat] || META.categories.other_problem).color; }
+function icon(f, selected){
+  const p = f.properties, size = 12 + p.severity * 6;
+  return L.divIcon({className: "", iconSize: [size, size], html: '<div class="pin' + (p.needs_review ? " rev" : "") +
+    (selected ? " sel" : "") + '" style="width:' + size + "px;height:" + size + "px;background:" + color(p.category) + '"></div>'});
+}
+function openReview(id){
+  Promise.all([api("/api/walks/" + id), api("/api/walks/" + id + "/findings"), api("/api/walks/" + id + "/track")])
+  .then(function(res){
+    const s = res[0], geo = res[1], track = res[2];
+    $("home").style.display = "none"; $("review").classList.add("on");
+    location.hash = "walk=" + id;
+    $("rtitle").textContent = s.title;
+    if (R && R.map) R.map.remove();
+    R = {id: id, feats: geo.features, markers: [], dirty: false, sel: -1};
+    R.map = L.map("rmap");
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(R.map);
+    const layers = [];
+    if (track.points.length > 1) layers.push(L.polyline(track.points, {color: "#3388ff", weight: 4, opacity: .7}).addTo(R.map));
+    R.feats.forEach(function(f, i){
+      const c = f.geometry.coordinates;
+      const m = L.marker([c[1], c[0]], {icon: icon(f), draggable: true, title: f.properties.summary}).addTo(R.map);
+      m.on("click", function(){ select(i, true); });
+      m.on("dragend", function(){
+        const ll = m.getLatLng();
+        f.geometry.coordinates = [+ll.lng.toFixed(7), +ll.lat.toFixed(7)];
+        f.properties.needs_review = false;
+        renderCard(i); setIcon(i); markDirty();
+      });
+      R.markers.push(m); layers.push(m);
+    });
+    if (layers.length) R.map.fitBounds(L.featureGroup(layers).getBounds(), {padding: [30, 30], maxZoom: 18});
+    else R.map.setView([20, 78], 4);
+    $("flist").innerHTML = R.feats.map(function(_, i){ return '<div class="f" id="f' + i + '"></div>'; }).join("") ||
+      '<p class="msg">Gemma found nothing on this walk.</p>';
+    R.feats.forEach(function(_, i){ renderCard(i); });
+    downloads(); markDirty(false);
+    setTimeout(function(){ R.map.invalidateSize(); }, 50);
+  }).catch(function(e){ alert("Couldn't open this walk: " + e.message); });
+}
+function setIcon(i){ R.markers[i].setIcon(icon(R.feats[i], i === R.sel)); }
+function renderCard(i){
+  const f = R.feats[i], p = f.properties, card = $("f" + i), pos = META.categories[p.category] && META.categories[p.category].positive;
+  const cats = Object.keys(META.categories).map(function(k){
+    return '<option value="' + k + '"' + (k === p.category ? " selected" : "") + ">" + esc(META.categories[k].label) + "</option>"; }).join("");
+  const sevs = [1, 2, 3].map(function(n){
+    return '<option value="' + n + '"' + (n === p.severity ? " selected" : "") + ">" + n + " " + META.severity_labels[n] + "</option>"; }).join("");
+  card.innerHTML = '<div class="top"><span class="dot" style="background:' + color(p.category) + '"></span>' +
+    '<select data-k="category" aria-label="Category">' + cats + "</select></div>" +
+    '<div class="two"><textarea data-k="summary" aria-label="Summary">' + esc(p.summary) + "</textarea>" +
+    '<select data-k="severity" aria-label="Severity"' + (pos ? " disabled" : "") + ">" + sevs + "</select></div>" +
+    (p.quote ? '<div class="q">&ldquo;' + esc(p.quote) + "&rdquo;</div>" : "") +
+    '<div class="meta"><span>' + esc((p.time_local || "").slice(11, 16)) + "</span>" +
+    '<label><input type="checkbox" data-k="needs_review"' + (p.needs_review ? " checked" : "") + "> location needs checking</label>" +
+    '<button class="del" type="button">Delete</button></div>';
+}
+function select(i, scroll){
+  const prev = R.sel; R.sel = i;
+  if (prev >= 0 && R.markers[prev]) { setIcon(prev); $("f" + prev).classList.remove("sel"); }
+  setIcon(i); $("f" + i).classList.add("sel");
+  if (scroll) $("f" + i).scrollIntoView({behavior: "smooth", block: "nearest"});
+  else R.map.panTo(R.markers[i].getLatLng());
+}
+function markDirty(d){
+  R.dirty = d !== false;
+  $("save").disabled = !R.dirty;
+  $("rmsg").textContent = R.dirty ? "Unsaved changes" : "";
+}
+$("flist").addEventListener("click", function(e){
+  const card = e.target.closest(".f");
+  if (!card) return;
+  const i = +card.id.slice(1);
+  if (e.target.classList.contains("del")) {
+    R.feats[i].deleted = true; card.classList.add("gone"); R.markers[i].remove(); markDirty(); return;
+  }
+  if (!e.target.matches("select,textarea,input")) select(i, false);
+});
+$("flist").addEventListener("change", function(e){
+  const k = e.target.dataset.k, card = e.target.closest(".f");
+  if (!k || !card) return;
+  const i = +card.id.slice(1), p = R.feats[i].properties;
+  if (k === "severity") p.severity = +e.target.value;
+  else if (k === "needs_review") p.needs_review = e.target.checked;
+  else if (k === "category") {
+    p.category = e.target.value;
+    if (META.categories[p.category].positive) p.severity = 1;
+    renderCard(i);
+  } else p[k] = e.target.value;
+  setIcon(i); markDirty();
+});
+$("flist").addEventListener("input", function(e){
+  if (e.target.dataset.k === "summary") { R.feats[+e.target.closest(".f").id.slice(1)].properties.summary = e.target.value; markDirty(); }
+});
+$("save").addEventListener("click", function(){
+  const keep = R.feats.filter(function(f){ return !f.deleted; }).map(function(f){
+    return {type: "Feature", geometry: f.geometry, properties: f.properties}; });
+  $("save").disabled = true; $("rmsg").textContent = "Saving…";
+  api("/api/walks/" + R.id + "/findings", {method: "PUT", headers: Object.assign({"Content-Type": "application/geo+json"}, H),
+    body: JSON.stringify({type: "FeatureCollection", features: keep})})
+  .then(function(r){ markDirty(false); $("rmsg").textContent = "Saved " + r.saved + " findings. Report, CSV and map rebuilt."; downloads(); loadWalks(); })
+  .catch(function(e){ $("rmsg").textContent = "Save failed: " + e.message; $("save").disabled = false; });
+});
+function downloads(){
+  const b = "/api/walks/" + R.id + "/download/", v = "?v=" + Date.now();
+  $("dl").innerHTML = '<a href="' + b + "map.html" + v + '&inline" target="_blank" rel="noopener">Open map</a> · ' +
+    '<a href="' + b + "report.md" + v + '">Report</a> · <a href="' + b + "findings.csv" + v + '">CSV</a> · ' +
+    '<a href="' + b + "findings.geojson" + v + '">GeoJSON</a>';
+}
+$("back").addEventListener("click", function(){
+  if (R && R.dirty && !confirm("You have unsaved changes. Leave without saving?")) return;
+  $("review").classList.remove("on"); $("home").style.display = ""; history.replaceState(null, "", "/"); loadWalks();
+});
+window.addEventListener("beforeunload", function(e){ if (R && R.dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+/* ---------- start ---------- */
+setupDrop("audio"); setupDrop("gpx");
+$("go").addEventListener("click", startWalk);
+api("/api/meta").then(function(m){
+  META = m; loadWalks();
+  const h = location.hash.match(/walk=([\w-]+)/);
+  if (h) openReview(h[1]);
+  api("/api/walks").then(function(list){
+    const running = list.filter(function(w){ return w.state === "running"; })[0];
+    if (running) watch(running.id);
+  });
+});
+</script>
+</body>
+</html>
