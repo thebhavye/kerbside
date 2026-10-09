@@ -58,7 +58,14 @@ def fake_get(url: str, timeout: float = 0) -> FakeResponse:
     return FakeResponse({"models": [{"name": "gemma3:4b", "model": "gemma3:4b"}]})
 
 
+UNLOADS: list[str] = []
+
+
 def fake_post(url: str, json: dict, timeout: float = 0) -> FakeResponse:  # noqa: A002 - mirrors requests
+    if url.endswith("/api/generate"):
+        assert json["keep_alive"] == 0
+        UNLOADS.append(json["model"])
+        return FakeResponse({"done": True, "done_reason": "unload"})
     assert url.endswith("/api/chat")
     assert json["stream"] is False and json["options"]["temperature"] == 0
     assert "lines" in json["format"]["properties"]
@@ -76,6 +83,7 @@ def fake_post(url: str, json: dict, timeout: float = 0) -> FakeResponse:  # noqa
 def run_sample(out: Path) -> None:
     """Run the full CLI on the sample with a cached transcript and mocked Ollama."""
     out.mkdir(parents=True, exist_ok=True)
+    UNLOADS.clear()
     shutil.copyfile(TRANSCRIPT, out / "transcript.json")
     audio = out / "sample_walk.m4a"
     audio.write_bytes(b"")  # placeholder: the cached transcript is used, so Whisper never runs
@@ -84,6 +92,7 @@ def run_sample(out: Path) -> None:
         code = kerbside.main([str(audio), str(GPX), "--out", str(out), "--start", "2026-10-10 07:30:00",
                               "--title", "Kerbside Sample Walk"])
     assert code == 0
+    assert UNLOADS == ["gemma3:4b"], "Gemma should be unloaded once extraction is done"
 
 
 def check_alignment() -> None:

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import gc
 import hashlib
 import html
 import json
@@ -322,6 +323,8 @@ def transcribe(audio: Path, cache_path: Path, size: str, lang: str | None, trans
         segments.append({"id": len(segments) + 1, "start": round(start, 2), "end": round(end, 2), "text": text})
         pct = min(100.0, end / info.duration * 100) if info.duration else 0.0
         print(f"  {pct:5.1f}%  [{fmt_clock(start)}] {text}")
+    del seg_iter, model  # free Whisper's memory before Gemma loads
+    gc.collect()
     data = {**key, "language": info.language, "duration": info.duration, "segments": segments}
     write_json(cache_path, data)
     print(f"  Saved {len(segments)} lines to {cache_path}")
@@ -373,6 +376,14 @@ def ollama_chat(model: str, system: str, user: str, schema: dict, host: str = OL
     except requests.RequestException as exc:
         raise KerbsideError(f"Ollama request failed: {exc}") from None
     return json.loads(r.json().get("message", {}).get("content", ""))
+
+
+def unload_model(model: str, host: str = OLLAMA_URL) -> None:
+    """Ask Ollama to free the model's memory now instead of keeping it loaded for 5 minutes."""
+    try:
+        requests.post(f"{host}/api/generate", json={"model": model, "keep_alive": 0}, timeout=30)
+    except requests.RequestException:
+        pass  # best effort: Ollama frees it on its own after a few minutes
 
 
 def lines_to_findings(labels: Any, chunk: list[dict]) -> list[dict]:
@@ -448,14 +459,17 @@ def extract_findings(segments: list[dict], model: str, cache_path: Path, fresh: 
     chunks = [segments[i:i + CHUNK_LINES] for i in range(0, len(segments), CHUNK_LINES)]
     findings: list[dict] = []
     seen: set[tuple] = set()
-    for n, chunk in enumerate(chunks, 1):
-        print(f"  Chunk {n}/{len(chunks)} (lines {chunk[0]['id']}-{chunk[-1]['id']})...", flush=True)
-        for f in extract_chunk(chunk, model, host):
-            sig = (tuple(f["line_ids"]), f["category"])
-            if sig not in seen:
-                seen.add(sig)
-                findings.append(f)
-        print(f"    {len(findings)} finding(s) so far")
+    try:
+        for n, chunk in enumerate(chunks, 1):
+            print(f"  Chunk {n}/{len(chunks)} (lines {chunk[0]['id']}-{chunk[-1]['id']})...", flush=True)
+            for f in extract_chunk(chunk, model, host):
+                sig = (tuple(f["line_ids"]), f["category"])
+                if sig not in seen:
+                    seen.add(sig)
+                    findings.append(f)
+            print(f"    {len(findings)} finding(s) so far")
+    finally:
+        unload_model(model, host)  # give the RAM back as soon as we're done (or interrupted)
     write_json(cache_path, {**key, "findings": findings})
     return findings
 
