@@ -529,6 +529,8 @@ h1{font-size:1.15rem;margin:0 0 4px}
   font-size:12px;line-height:1.6;max-height:40vh;overflow:auto}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px}
 .legend i.dash{width:8px;height:8px;border:2px dashed #222}
+.legend summary{cursor:pointer;font-weight:600;padding:2px 0}
+.legend details:not([open]) summary{padding:0}
 .popup h3{margin:0 0 4px;font-size:14px}
 .popup .q{font-style:italic;color:#555;margin:6px 0}
 .popup .warn{color:#a15c00}
@@ -542,7 +544,8 @@ h1{font-size:1.15rem;margin:0 0 4px}
 const DATA = __DATA__;
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
-const map = L.map("map");
+// Canvas renderer with a wide hit tolerance: small circles are easy to tap with a finger.
+const map = L.map("map", {renderer: L.canvas({tolerance: 10})});
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
 const layers = [];
@@ -563,15 +566,18 @@ else map.setView([20, 78], 4);
 const legend = L.control({position: "bottomright"});
 legend.onAdd = function(){
   const div = L.DomUtil.create("div", "legend");
-  let h = "";
+  // Collapsed on phones so it doesn't cover the map; open on wider screens.
+  const open = window.matchMedia("(min-width: 601px)").matches ? " open" : "";
+  let h = "<details" + open + "><summary>Map key</summary>";
   Object.keys(DATA.categories).forEach(function(k){
     const n = DATA.findings.filter(function(f){return f.category === k;}).length;
     if (n) h += '<div><i style="background:' + DATA.categories[k].color + '"></i>' + esc(DATA.categories[k].label) + " (" + n + ")</div>";
   });
   h += '<div style="margin-top:4px;color:#555">Bigger circle = more severe</div>';
   if (DATA.findings.some(function(f){return f.needs_review;})) h += '<div><i class="dash"></i>Location needs review</div>';
-  div.innerHTML = h;
+  div.innerHTML = h + "</details>";
   L.DomEvent.disableScrollPropagation(div);
+  L.DomEvent.disableClickPropagation(div);
   return div;
 };
 legend.addTo(map);
