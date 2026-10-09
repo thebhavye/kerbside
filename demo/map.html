@@ -19,6 +19,10 @@ h1{font-size:1.15rem;margin:0 0 4px}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px}
 .legend i.dash{width:8px;height:8px;border:2px dashed #222}
 .legend summary{cursor:pointer;font-weight:600;padding:2px 0}
+.legend .cat{display:block;width:100%;text-align:left;border:0;background:none;padding:2px 0;
+  font:inherit;color:inherit;cursor:pointer}
+.legend .cat.off{opacity:.4;text-decoration:line-through}
+.legend .hint{color:#555;font-size:.9em;margin-top:2px}
 .legend details:not([open]) summary{padding:0}
 .search{background:#fff;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);width:min(260px,62vw)}
 .search form{display:flex}
@@ -69,7 +73,7 @@ function copyText(t){
 }
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-const layers = [];
+const layers = [], byCategory = {};
 if (DATA.track.length > 1) layers.push(L.polyline(DATA.track, {color: "#3388ff", weight: 4, opacity: 0.7}).addTo(map));
 DATA.findings.slice().sort(function(a,b){return a.severity-b.severity;}).forEach(function(f){
   const c = DATA.categories[f.category] || DATA.categories.other_problem;
@@ -94,6 +98,7 @@ DATA.findings.slice().sort(function(a,b){return a.severity-b.severity;}).forEach
     return el;
   }, {maxWidth: 260});
   layers.push(m.addTo(map));
+  (byCategory[f.category] = byCategory[f.category] || []).push(m);
 });
 if (layers.length) map.fitBounds(L.featureGroup(layers).getBounds(), {padding: [24, 24], maxZoom: 18});
 else map.setView([20, 78], 4);
@@ -105,11 +110,20 @@ legend.onAdd = function(){
   let h = "<details" + open + "><summary>Map key</summary>";
   Object.keys(DATA.categories).forEach(function(k){
     const n = DATA.findings.filter(function(f){return f.category === k;}).length;
-    if (n) h += '<div><i style="background:' + DATA.categories[k].color + '"></i>' + esc(DATA.categories[k].label) + " (" + n + ")</div>";
+    if (n) h += '<button type="button" class="cat" data-k="' + k + '" aria-pressed="true"><i style="background:' +
+      DATA.categories[k].color + '"></i>' + esc(DATA.categories[k].label) + " (" + n + ")</button>";
   });
+  h += '<div class="hint">Tap a category to hide or show it</div>';
   h += '<div style="margin-top:4px;color:#555">Bigger circle = more severe</div>';
   if (DATA.findings.some(function(f){return f.needs_review;})) h += '<div><i class="dash"></i>Location needs review</div>';
   div.innerHTML = h + "</details>";
+  div.querySelectorAll("button.cat").forEach(function(b){
+    b.addEventListener("click", function(){
+      const show = b.classList.toggle("off") === false;
+      b.setAttribute("aria-pressed", String(show));
+      byCategory[b.dataset.k].forEach(function(m){ if (show) m.addTo(map); else m.remove(); });
+    });
+  });
   L.DomEvent.disableScrollPropagation(div);
   L.DomEvent.disableClickPropagation(div);
   return div;
