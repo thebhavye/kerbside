@@ -18,6 +18,7 @@ import html
 import json
 import math
 import os
+import re
 import shutil
 import sys
 from datetime import datetime, timedelta, timezone
@@ -92,6 +93,13 @@ For each line also give:
   crossing, or the speaker says someone could get hurt. Positives and not_an_observation are always 1."""
 
 LINE_LABELS = ["not_an_observation", "same_as_previous", *CATEGORIES]
+
+# Fall hazards that are always severe. The model under-rates these (an open drain often comes back
+# as "moderate"), so the resident's words set a floor of severity 3.
+HAZARD_RE = re.compile(r"\bopen (?:drain|gutter|nala|nullah)|\bmanhole"
+                       r"|\b(?:no|missing|without(?: a| any)?) (?:drain )?(?:cover|lid|slab)s?\b"
+                       r"|\b(?:cover|lid|slab)s? (?:is |are )?missing\b"
+                       r"|\b(?:big|deep|large|huge) hole|\bpot ?holes?\b", re.I)
 
 
 class KerbsideError(Exception):
@@ -420,6 +428,11 @@ def lines_to_findings(labels: Any, chunk: list[dict]) -> list[dict]:
             findings.append({"line_ids": [seg["id"]], "category": label,
                              "severity": 1 if CATEGORIES[label]["positive"] else severity,
                              "summary": " ".join(str(raw.get("summary", "")).split())})
+    text = {s["id"]: s["text"] for s in chunk}
+    for f in findings:
+        if not CATEGORIES[f["category"]]["positive"] and \
+                HAZARD_RE.search(" ".join(text[i] for i in f["line_ids"])):
+            f["severity"] = 3
     return findings
 
 

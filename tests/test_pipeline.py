@@ -36,7 +36,7 @@ FAKE_LABELS = {
     11: ("waterlogging", 2, "Waterlogging two days after rain"),
     12: ("good_footpath", 1, "Wide, good footpath"),
     13: ("unsafe_crossing", 3, "No zebra crossing at junction, fast traffic"),
-    15: ("blocked_drain", 3, "Open drain without cover next to school gate"),
+    15: ("blocked_drain", 2, "Open drain without cover next to school gate"),  # under-rated, like real Gemma
 }
 EXPECTED_FIRST_LINES = {2, 4, 6, 7, 9, 10, 11, 12, 13, 15}
 TEXT_TO_ID = {s["text"]: s["id"] for s in json.loads(TRANSCRIPT.read_text(encoding="utf-8"))["segments"]}
@@ -132,6 +132,7 @@ def check_outputs(out: Path) -> None:
     assert props[6]["positive"] is True and props[6]["severity"] == 1, "positives are always severity 1"
     assert props[2]["time_local"] == "2026-10-10 07:30:20"
     assert props[15]["needs_review"] is True
+    assert props[15]["severity"] == 3, "an open drain is always severe, whatever the model said"
     assert [p["needs_review"] for k, p in props.items() if k != 15] == [False] * (len(props) - 1)
     for f in feats:
         lon, lat = f["geometry"]["coordinates"]
@@ -230,6 +231,17 @@ def test_lines_to_findings() -> None:
         {"line_ids": [22, 23], "category": "garbage", "severity": 3, "summary": "Trash pile, rats"},
         {"line_ids": [26], "category": "shade_tree", "severity": 1, "summary": "Tree"},
     ]
+
+
+def test_hazard_severity_floor() -> None:
+    chunk = [{"id": 1, "text": "Manhole lid is missing here."},
+             {"id": 2, "text": "Drain is blocked with plastic."},
+             {"id": 3, "text": "Nice footpath, no potholes at all."}]
+    labels = [{"id": 1, "label": "blocked_drain", "summary": "Missing manhole lid", "severity": 1},
+              {"id": 2, "label": "blocked_drain", "summary": "Blocked drain", "severity": 2},
+              {"id": 3, "label": "good_footpath", "summary": "Nice footpath", "severity": 1}]
+    found = kerbside.lines_to_findings(labels, chunk)
+    assert [f["severity"] for f in found] == [3, 2, 1], "raise hazards only; never touch positives"
 
 
 def test_alignment() -> None:
