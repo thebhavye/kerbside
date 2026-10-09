@@ -6,7 +6,7 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          80.2652363,
+          80.265231,
           13.0
         ]
       },
@@ -16,7 +16,7 @@
         "label": "Broken footpath",
         "severity": 3,
         "severity_label": "severe",
-        "summary": "A big crack and one slab is missing from the footpath.",
+        "summary": "Someone could trip on this broken footpath at night.",
         "quote": "Footpath is broken here, big crack and one slab is missing. Someone could easily trip on this at night.",
         "time_local": "2026-10-10 07:30:20",
         "needs_review": false,
@@ -32,7 +32,7 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          80.2656382,
+          80.2656338,
           13.0
         ]
       },
@@ -42,7 +42,7 @@
         "label": "Blocked or open drain",
         "severity": 2,
         "severity_label": "moderate",
-        "summary": "The drain is blocked with lots of plastic.",
+        "summary": "Blocked drain with lots of plastic inside.",
         "quote": "Drain is blocked, lots of plastic in it.",
         "time_local": "2026-10-10 07:30:55",
         "needs_review": false,
@@ -57,7 +57,7 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          80.2662722,
+          80.2662692,
           13.0
         ]
       },
@@ -67,7 +67,7 @@
         "label": "Shade tree",
         "severity": 1,
         "severity_label": "minor",
-        "summary": "A huge rain tree provides nice shade.",
+        "summary": "Large rain tree providing nice shade.",
         "quote": "Huge rain tree here, nice shade.",
         "time_local": "2026-10-10 07:31:50",
         "needs_review": false,
@@ -82,7 +82,7 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          80.2666173,
+          80.2666136,
           13.0
         ]
       },
@@ -92,7 +92,7 @@
         "label": "Footpath obstruction",
         "severity": 2,
         "severity_label": "moderate",
-        "summary": "Cars are parked fully on the footpath.",
+        "summary": "Cars parked fully on the footpath, forcing pedestrians onto the road.",
         "quote": "Cars parked fully on the footpath, I have to walk on the road.",
         "time_local": "2026-10-10 07:32:20",
         "needs_review": false,
@@ -107,7 +107,7 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          80.2674254,
+          80.2674208,
           13.0
         ]
       },
@@ -117,13 +117,14 @@
         "label": "Streetlight not working",
         "severity": 2,
         "severity_label": "moderate",
-        "summary": "The street light is not working.",
-        "quote": "Street light not working.",
+        "summary": "Streetlight on pole number 42 is not working.",
+        "quote": "Street light not working. This is pole number 42.",
         "time_local": "2026-10-10 07:33:30",
         "needs_review": false,
         "positive": false,
         "line_ids": [
-          9
+          9,
+          10
         ]
       }
     },
@@ -133,16 +134,16 @@
         "type": "Point",
         "coordinates": [
           80.2677658,
-          13.0001134
+          13.0001127
         ]
       },
       "properties": {
         "id": 6,
         "category": "garbage",
         "label": "Garbage",
-        "severity": 2,
-        "severity_label": "moderate",
-        "summary": "A garbage dump near the corner smells bad.",
+        "severity": 1,
+        "severity_label": "minor",
+        "summary": "Garbage dump near the corner, causing a bad smell.",
         "quote": "Garbage dump near the corner, smells bad.",
         "time_local": "2026-10-10 07:34:10",
         "needs_review": false,
@@ -158,7 +159,7 @@
         "type": "Point",
         "coordinates": [
           80.2677658,
-          13.000678
+          13.0006744
         ]
       },
       "properties": {
@@ -167,7 +168,7 @@
         "label": "Waterlogging",
         "severity": 2,
         "severity_label": "moderate",
-        "summary": "Water logging is present even after rain two days ago.",
+        "summary": "Standing water remains after rain two days ago.",
         "quote": "Water logging here even though it rained two days ago.",
         "time_local": "2026-10-10 07:35:00",
         "needs_review": false,
@@ -183,7 +184,7 @@
         "type": "Point",
         "coordinates": [
           80.2677658,
-          13.0011254
+          13.0011238
         ]
       },
       "properties": {
@@ -192,7 +193,7 @@
         "label": "Good footpath",
         "severity": 1,
         "severity_label": "minor",
-        "summary": "The footpath is wide and in good condition.",
+        "summary": "Wide, good footpath observed here.",
         "quote": "Footpath here is nice and wide, really good.",
         "time_local": "2026-10-10 07:35:40",
         "needs_review": false,
@@ -208,7 +209,7 @@
         "type": "Point",
         "coordinates": [
           80.2677658,
-          13.001799
+          13.0017974
         ]
       },
       "properties": {
@@ -217,7 +218,7 @@
         "label": "Unsafe crossing",
         "severity": 3,
         "severity_label": "severe",
-        "summary": "There’s no zebra crossing and vehicles travel quickly at the junction.",
+        "summary": "No zebra crossing at the junction with fast approaching vehicles.",
         "quote": "No zebra crossing at this junction and vehicles come very fast.",
         "time_local": "2026-10-10 07:36:40",
         "needs_review": false,
@@ -240,9 +241,9 @@
         "id": 10,
         "category": "blocked_drain",
         "label": "Blocked or open drain",
-        "severity": 2,
-        "severity_label": "moderate",
-        "summary": "An open drain is next to the school gate without a cover.",
+        "severity": 3,
+        "severity_label": "severe",
+        "summary": "Open drain next to the school gate with no cover observed.",
         "quote": "Open drain right next to the school gate, no cover.",
         "time_local": "2026-10-10 07:38:20",
         "needs_review": true,
