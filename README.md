@@ -118,7 +118,9 @@ as `findings.geojson.bak`.
 
 Kerbside matches each sentence to the GPS track by time. It takes the recording's start time from, in
 order: `--start`, the time stored inside the `.m4a`, or the first GPS point. It prints which one it used
-and warns if the audio and the track don't overlap.
+and warns if the audio and the track don't overlap. Some recorders store the time the file was *saved*
+(the end of the recording); Kerbside checks both readings against the GPS track and uses the one that
+fits, and says so.
 
 - If the points are clearly off, give the start time you see in Voice Memos:
   `--start "2026-10-10 07:30:00"` (and `--tz` if you're not in India).

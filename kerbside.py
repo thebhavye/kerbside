@@ -273,11 +273,27 @@ def audio_metadata(path: Path) -> tuple[datetime | None, float | None]:
 
 
 def resolve_start(start_arg: str | None, zone: ZoneInfo, audio_created: datetime | None,
-                  track: list[TrackPoint]) -> tuple[datetime, str]:
-    """Pick the recording start: --start, then audio metadata, then first GPX point."""
+                  track: list[TrackPoint], audio_duration: float | None = None) -> tuple[datetime, str]:
+    """Pick the recording start: --start, then audio metadata, then first GPX point.
+
+    Some recorders store the time a file was saved (the END of the recording) as creation_time.
+    When the audio length is known, both readings are checked against the GPS track and the
+    one that overlaps the walk clearly better wins.
+    """
     if start_arg:
         return parse_start(start_arg, zone), "--start option"
     if audio_created:
+        if audio_duration:
+            g0, g1 = track[0][0].timestamp(), track[-1][0].timestamp()
+
+            def overlap(a0: float) -> float:
+                return max(0.0, min(a0 + audio_duration, g1) - max(a0, g0))
+
+            created = audio_created.timestamp()
+            if overlap(created - audio_duration) > overlap(created) + 0.25 * audio_duration:
+                return (audio_created - timedelta(seconds=audio_duration),
+                        "audio file creation_time metadata, read as the recording's END time "
+                        "because that matches the GPS track much better")
         return audio_created, "audio file creation_time metadata"
     return track[0][0], "first GPX timestamp (no --start and no audio metadata)"
 
@@ -857,7 +873,7 @@ def run(args: argparse.Namespace) -> None:
         check_ollama(args.model)  # fail fast, before a long transcription
 
     created, audio_duration = audio_metadata(audio)
-    start, source = resolve_start(args.start, zone, created, track)
+    start, source = resolve_start(args.start, zone, created, track, audio_duration)
     print(f"  Recording start: {start.astimezone(zone):%Y-%m-%d %H:%M:%S} ({args.tz}), from {source}")
     if args.offset:
         print(f"  Applying offset of {args.offset:+g} s")

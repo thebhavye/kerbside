@@ -233,6 +233,24 @@ def test_lines_to_findings() -> None:
     ]
 
 
+def test_start_time_from_metadata() -> None:
+    from datetime import timedelta
+    track = kerbside.load_gpx(GPX)  # 07:30:00 to 07:38:00 IST
+    t0, dur = track[0][0], 470.0
+    # creation_time is the start: keep it.
+    start, source = kerbside.resolve_start(None, ZONE, t0, track, dur)
+    assert start == t0 and "END" not in source
+    # creation_time is when the file was saved (the end): use end minus length.
+    start, source = kerbside.resolve_start(None, ZONE, t0 + timedelta(seconds=dur), track, dur)
+    assert start == t0 and "END" in source
+    # Unknown length: take the metadata as the start.
+    start, _ = kerbside.resolve_start(None, ZONE, t0 + timedelta(seconds=dur), track, None)
+    assert start == t0 + timedelta(seconds=dur)
+    # --start always wins.
+    start, source = kerbside.resolve_start("2026-10-10 07:31:00", ZONE, t0, track, dur)
+    assert start == t0 + timedelta(minutes=1) and source == "--start option"
+
+
 def test_hazard_severity_floor() -> None:
     chunk = [{"id": 1, "text": "Manhole lid is missing here."},
              {"id": 2, "text": "Drain is blocked with plastic."},
