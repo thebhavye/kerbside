@@ -57,11 +57,32 @@ HELDOUT_EXPECTED = {
     11: ([11], {"shade_tree"}, 1),
 }
 
+# Observations split across lines, as Whisper often does. The detail must reach the summary.
+DETAIL_LINES = [
+    "Okay, walking towards the market.",
+    "Streetlight is off here.",
+    "Pole number seventeen.",
+    "Big pothole in the footpath.",
+    "About two feet wide.",
+    "Drain overflowing near the tea shop.",
+    "It's been like this since last month.",
+    "Now I'm near the bus stop.",
+    "Nice wide footpath.",
+]
+DETAIL_EXPECTED = {
+    2: ([2, 3], {"streetlight_out"}, 2),
+    4: ([4, 5], {"broken_footpath"}, 3),
+    6: ([6, 7], {"blocked_drain", "waterlogging"}, 2),
+    9: ([9], {"good_footpath"}, 1),
+}
+DETAIL_IN_SUMMARY = {2: ("17", "seventeen"), 4: ("two", "2"), 6: ("month",)}
+
 # Place words that would only be right if the speaker said them.
 PLACE_WORDS = ("shop", "bakery", "corner", "school", "gate", "temple", "wall", "junction", "pole", "bus stop")
 
 
-def evaluate(name: str, segments: list[dict], expected: dict, model: str) -> dict:
+def evaluate(name: str, segments: list[dict], expected: dict, model: str,
+             details: dict | None = None) -> dict:
     """Run extraction once and print a line-by-line comparison."""
     text = {s["id"]: s["text"] for s in segments}
     with tempfile.TemporaryDirectory() as tmp:
@@ -83,15 +104,20 @@ def evaluate(name: str, segments: list[dict], expected: dict, model: str) -> dic
         quote = " ".join(text[i] for i in (g or {}).get("line_ids", [lid])).lower()
         invented = [w for w in PLACE_WORDS if g and w in g["summary"].lower() and w not in quote]
         score["invented"] += bool(invented)
+        lost = bool(details and lid in details and g and
+                    not any(w in g["summary"].lower() for w in details[lid]))
+        score["lost_detail"] = score.get("lost_detail", 0) + lost
         flags = (f" ids={g['line_ids']}" if g and e and g["line_ids"] != e[0] else "") + \
-                (f"  INVENTED: {', '.join(invented)}" if invented else "")
+                (f"  INVENTED: {', '.join(invented)}" if invented else "") + \
+                ("  LOST DETAIL" if lost else "")
         sev = f"{e[2] if e else '-'}/{g['severity'] if g else '-'}"
         print(f"{lid:>4}  {'/'.join(sorted(e[1])) if e else '(not an observation)':<26} "
               f"{g['category'] if g else 'MISSED':<18} {sev:<5} "
               f"{'Y' if cat_ok else 'N'}   {g['summary'] if g else text[lid]}{flags}")
     n = len(expected)
     print(f"categories {score['cat']}/{n} · severities {score['sev']}/{n} · line ids {score['ids']}/{n} · "
-          f"missed {score['missed']} · extra {score['extra']} · invented places {score['invented']}")
+          f"missed {score['missed']} · extra {score['extra']} · invented places {score['invented']}" +
+          (f" · lost details {score.get('lost_detail', 0)}/{len(details)}" if details else ""))
     return score
 
 
@@ -106,10 +132,12 @@ def main() -> None:
         sys.exit(str(exc))
     sample = json.loads((ROOT / "sample_data" / "transcript.json").read_text(encoding="utf-8"))["segments"]
     heldout = [{"id": i, "start": i * 10.0, "end": i * 10.0 + 4, "text": t} for i, t in enumerate(HELDOUT_LINES, 1)]
+    detail = [{"id": i, "start": i * 10.0, "end": i * 10.0 + 4, "text": t} for i, t in enumerate(DETAIL_LINES, 1)]
     for run in range(1, args.runs + 1):
         print(f"\n######## run {run}/{args.runs}")
         evaluate("sample", sample, SAMPLE_EXPECTED, args.model)
         evaluate("heldout", heldout, HELDOUT_EXPECTED, args.model)
+        evaluate("details", detail, DETAIL_EXPECTED, args.model, DETAIL_IN_SUMMARY)
 
 
 if __name__ == "__main__":

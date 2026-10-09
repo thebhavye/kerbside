@@ -155,6 +155,8 @@ def check_outputs(out: Path) -> None:
     assert sections[0] == "Blocked or open drain (2)", "most severe category first, ties by count"
     assert sections.index("Garbage (1)") > sections.index("Waterlogging (1)")
     assert "(location approximate)" in report
+    assert ("Resident's words: “Footpath is broken here, big crack and one slab is missing. "
+            "Someone could easily trip on this at night.”") in report
     assert "</script>" not in report and "&lt;/script&gt;" in report
 
 
@@ -215,7 +217,7 @@ def test_lines_to_findings() -> None:
     labels = [
         {"id": 1, "label": "same_as_previous", "summary": "", "severity": 3},   # nothing before: dropped
         {"id": 2, "label": "garbage", "summary": "Trash", "severity": 1},
-        {"id": 3, "label": "same_as_previous", "summary": "", "severity": 3},   # merges, raises severity
+        {"id": 3, "label": "same_as_previous", "summary": "Trash pile, rats", "severity": 3},  # merges
         {"id": 4, "label": "not_an_observation", "summary": "", "severity": 1},
         {"id": 5, "label": "same_as_previous", "summary": "", "severity": 2},   # after chatter: dropped
         {"id": 6, "label": "shade_tree", "summary": "Tree", "severity": 3},     # positive: forced to 1
@@ -225,7 +227,7 @@ def test_lines_to_findings() -> None:
     ]
     found = kerbside.lines_to_findings(labels, chunk)
     assert found == [
-        {"line_ids": [22, 23], "category": "garbage", "severity": 3, "summary": "Trash"},
+        {"line_ids": [22, 23], "category": "garbage", "severity": 3, "summary": "Trash pile, rats"},
         {"line_ids": [26], "category": "shade_tree", "severity": 1, "summary": "Tree"},
     ]
 

@@ -63,7 +63,9 @@ Label EVERY line, in order, with exactly one label:
 - same_as_previous: the line only adds detail or a consequence to the observation on the line
   just before it ("someone could trip on this", "it's been like this for months"). A line that
   only says how bad, risky or dangerous something is, or points back with "this", "it" or "that",
-  without naming a new thing on the street, is same_as_previous.
+  without naming a new thing on the street, is same_as_previous. So is a line that only adds a
+  detail about that thing: a number, size, name or how long it has been like that. (A line that only
+  says where the speaker is, like "now I'm near the market", is not_an_observation.)
 - one of these categories, when the line is a new thing the speaker sees on the street:
   - broken_footpath: cracked, broken, missing slabs, holes in the footpath, uneven footpath
   - no_footpath: no footpath was ever built here
@@ -81,7 +83,9 @@ Label EVERY line, in order, with exactly one label:
 For each line also give:
 - summary: at most 15 words, plain English, written like a short complaint line. Use only
   details the speaker said; never invent places, landmarks or causes. Fix obvious transcription
-  errors. Don't add phrases like "is observed". Use "" if not_an_observation.
+  errors. Don't add phrases like "is observed". Use "" if not_an_observation. For same_as_previous,
+  rewrite the previous line's summary so it keeps the problem it named and adds the new detail
+  ("Streetlight off" + "pole 9" -> "Streetlight on pole 9 not working").
 - severity: 1 = minor annoyance (litter, smell, small crack); 2 = makes walking hard (blocked
   footpath, standing water, dark street, blocked drain); 3 = dangerous, could injure someone: a trip
   or fall hazard (missing slab, big hole, open drain or manhole), crossing fast traffic with no safe
@@ -407,6 +411,9 @@ def lines_to_findings(labels: Any, chunk: list[dict]) -> list[dict]:
             if findings and findings[-1]["line_ids"][-1] == chunk[pos - 2]["id"]:
                 last = findings[-1]
                 last["line_ids"].append(seg["id"])
+                summary = " ".join(str(raw.get("summary", "")).split())
+                if summary:  # the model restates the whole observation with the new detail
+                    last["summary"] = summary
                 if not CATEGORIES[last["category"]]["positive"]:
                     last["severity"] = max(last["severity"], severity)
         elif label in CATEGORIES:
@@ -750,6 +757,8 @@ def render_report(features: list[dict], track: list[TrackPoint], title: str, zon
             note = " *(location approximate)*" if p["needs_review"] else ""
             out.append(f"{n}. **{md_text(p['summary'])}** · {p['severity_label']} ({p['severity']}/3) · "
                        f"{when} · [map]({osm_link(lat, lon)}){note}")
+            if p["quote"]:  # the resident's own words, so no detail is lost in the summary
+                out.append(f"   *Resident's words: “{md_text(p['quote'])}”*")
         out.append("")
 
     positives = sorted((pc for pc in props if pc[0]["positive"]), key=lambda pc: pc[0]["time_local"])
