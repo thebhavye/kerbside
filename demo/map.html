@@ -33,6 +33,8 @@ h1{font-size:1.15rem;margin:0 0 4px}
 .popup h3{margin:0 0 4px;font-size:14px}
 .popup .q{font-style:italic;color:#555;margin:6px 0}
 .popup .warn{color:#a15c00}
+.popup .copy{display:block;width:100%;margin-top:8px;padding:8px;border:1px solid #ccc;border-radius:6px;
+  background:#f4f4f4;color:#1a1a1a;font-size:14px;cursor:pointer}
 @media (max-width:600px){h1{font-size:1rem}.stats{font-size:.78rem}.legend{font-size:11px}}
 </style>
 </head>
@@ -45,6 +47,26 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 // Canvas renderer with a wide hit tolerance: small circles are easy to tap with a finger.
 const map = L.map("map", {renderer: L.canvas({tolerance: 10})});
+// Ready-to-paste text for a complaint portal, WhatsApp or email.
+function complaintText(f){
+  return ["Street problem: " + f.label + " (severity: " + f.severity_label + ")", f.summary,
+          f.quote ? "Resident's words: \u201c" + f.quote + "\u201d" : "",
+          f.time_local ? "Seen: " + f.time_local : "", "Location: " + f.osm]
+    .filter(Boolean).join("\n");
+}
+// Clipboard API where allowed (https), else the old textarea trick (also works on iOS Safari).
+function copyText(t){
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+  return new Promise(function(ok, fail){
+    const ta = document.createElement("textarea");
+    ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, t.length);
+    let done = false;
+    try { done = document.execCommand("copy"); } catch (e) { done = false; }
+    ta.remove();
+    if (done) ok(); else fail();
+  });
+}
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
 const layers = [];
@@ -54,10 +76,23 @@ DATA.findings.slice().sort(function(a,b){return a.severity-b.severity;}).forEach
   const m = L.circleMarker([f.lat, f.lon], {radius: 4 + f.severity * 3, fillColor: c.color, fillOpacity: 0.8,
     color: f.needs_review ? "#222" : c.color, weight: f.needs_review ? 2.5 : 2, dashArray: f.needs_review ? "4 3" : null});
   const sev = f.positive ? "Good thing" : "Severity: " + esc(f.severity_label) + " (" + f.severity + "/3)";
-  m.bindPopup('<div class="popup"><h3>' + esc(f.label) + '</h3><div><b>' + sev + '</b></div><div>' + esc(f.summary) +
-    '</div>' + (f.quote ? '<div class="q">&ldquo;' + esc(f.quote) + '&rdquo;</div>' : '') + '<div>' + esc(f.time_local) +
-    '</div>' + (f.needs_review ? '<div class="warn">Location approximate, please check</div>' : '') +
-    '<div><a href="' + esc(f.osm) + '" target="_blank" rel="noopener">Open in OpenStreetMap</a></div></div>', {maxWidth: 260});
+  m.bindPopup(function(){
+    const el = document.createElement("div");
+    el.className = "popup";
+    el.innerHTML = '<h3>' + esc(f.label) + '</h3><div><b>' + sev + '</b></div><div>' + esc(f.summary) +
+      '</div>' + (f.quote ? '<div class="q">&ldquo;' + esc(f.quote) + '&rdquo;</div>' : '') + '<div>' + esc(f.time_local) +
+      '</div>' + (f.needs_review ? '<div class="warn">Location approximate, please check</div>' : '') +
+      '<div><a href="' + esc(f.osm) + '" target="_blank" rel="noopener">Open in OpenStreetMap</a></div>' +
+      (f.positive ? '' : '<button type="button" class="copy">Copy complaint text</button>');
+    const btn = el.querySelector("button.copy");
+    if (btn) btn.addEventListener("click", function(ev){
+      L.DomEvent.stopPropagation(ev);
+      copyText(complaintText(f)).then(function(){ btn.textContent = "Copied \u2713"; },
+        function(){ btn.textContent = "Couldn't copy. Select the text above instead."; });
+      setTimeout(function(){ btn.textContent = "Copy complaint text"; }, 2500);
+    });
+    return el;
+  }, {maxWidth: 260});
   layers.push(m.addTo(map));
 });
 if (layers.length) map.fitBounds(L.featureGroup(layers).getBounds(), {padding: [24, 24], maxZoom: 18});
