@@ -14,6 +14,7 @@ things ("huge rain tree, nice shade"), places each one on your walked route, and
 - `map.html`: a phone-friendly map of everything you found, with a place search box
 - `report.md`: a one-page report ready for your ward office or municipal complaint portal
 - `findings.geojson`: the data, which you can review and edit
+- `findings.csv`: the same findings as a table, for Excel, Google Sheets or portals that want a spreadsheet
 
 Built for the Hacktoberfest "Touch Grass" challenge. Open models only, CPU only, no cloud.
 
@@ -102,7 +103,7 @@ editor (or drag it into [geojson.io](https://geojson.io), fix things on the map,
 - change `summary`, `category` or `severity` (1 minor, 2 moderate, 3 severe),
 - drag a point to where the problem really is.
 
-Then rebuild the map and report without any AI calls:
+Then rebuild the map, report and CSV without any AI calls:
 
 ```powershell
 python kerbside.py --render-only

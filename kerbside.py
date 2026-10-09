@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import csv
 import gc
 import hashlib
 import html
@@ -870,7 +871,28 @@ def render_outputs(out: Path, title: str, zone: ZoneInfo) -> None:
         print("  Note: no track.json found, the map will show findings only.")
     (out / "map.html").write_text(render_map(features, track, title, zone), encoding="utf-8")
     (out / "report.md").write_text(render_report(features, track, title, zone), encoding="utf-8")
-    print(f"  Wrote {out / 'map.html'} and {out / 'report.md'} ({len(features)} findings)")
+    write_csv(features, out / "findings.csv")
+    print(f"  Wrote {out / 'map.html'}, report.md and findings.csv ({len(features)} findings)")
+
+
+CSV_COLUMNS = ["id", "category", "label", "severity", "severity_label", "summary", "quote", "time_local",
+               "lat", "lon", "needs_review", "positive", "osm_link"]
+
+
+def write_csv(features: list[dict], path: Path) -> None:
+    """One row per finding, for spreadsheets and complaint portals that want a table."""
+    def cell(v: Any) -> Any:
+        # Stop Excel from running user text as a formula (CSV injection).
+        return "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "-", "@") else v
+
+    # utf-8-sig: the byte-order mark makes Excel on Windows read the file as UTF-8.
+    with path.open("w", encoding="utf-8-sig", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        for f in features:
+            lon, lat = f["geometry"]["coordinates"][:2]
+            writer.writerow({k: cell(v) for k, v in
+                             {**f["properties"], "lat": lat, "lon": lon, "osm_link": osm_link(lat, lon)}.items()})
 
 
 # ---------------------------------------------------------------- CLI

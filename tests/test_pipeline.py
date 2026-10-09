@@ -118,8 +118,17 @@ def check_alignment() -> None:
 
 
 def check_outputs(out: Path) -> None:
-    for name in ("transcript.json", "track.json", "extraction.json", "findings.geojson", "map.html", "report.md"):
+    for name in ("transcript.json", "track.json", "extraction.json", "findings.geojson", "map.html", "report.md",
+                 "findings.csv"):
         assert (out / name).is_file(), f"missing {name}"
+
+    import csv
+    raw_csv = (out / "findings.csv").read_bytes()
+    assert raw_csv.startswith(b"\xef\xbb\xbf"), "BOM so Excel reads UTF-8"
+    rows = list(csv.DictReader((out / "findings.csv").open(encoding="utf-8-sig", newline="")))
+    assert len(rows) == len(EXPECTED_FIRST_LINES) and rows[0]["category"] == "broken_footpath"
+    assert rows[0]["osm_link"].startswith("https://www.openstreetmap.org/?mlat=13.0")
+    assert "Someone could easily trip" in rows[0]["quote"]
 
     geo = json.loads((out / "findings.geojson").read_text(encoding="utf-8"))
     feats = geo["features"]
