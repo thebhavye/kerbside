@@ -11,7 +11,7 @@ transcribes what you said with [faster-whisper](https://github.com/SYSTRAN/faste
 problems you mentioned ("footpath broken here", "drain blocked", "streetlight not working") and the good
 things ("huge rain tree, nice shade"), places each one on your walked route, and gives you:
 
-- `map.html`: a phone-friendly map of everything you found
+- `map.html`: a phone-friendly map of everything you found, with a place search box
 - `report.md`: a one-page report ready for your ward office or municipal complaint portal
 - `findings.geojson`: the data, which you can review and edit
 
@@ -138,7 +138,8 @@ and warns if the audio and the track don't overlap.
 ## Privacy
 
 Your audio and GPS track never leave your laptop. Whisper and Gemma run locally; the only network
-traffic is the one-time model downloads and the map tiles when you view the map.
+traffic is the one-time model downloads, the map tiles when you view the map, and any place names you
+type into the map's search box (sent to OpenStreetMap's Nominatim search service).
 
 ## Try it without recording anything
 

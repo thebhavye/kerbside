@@ -20,6 +20,16 @@ h1{font-size:1.15rem;margin:0 0 4px}
 .legend i.dash{width:8px;height:8px;border:2px dashed #222}
 .legend summary{cursor:pointer;font-weight:600;padding:2px 0}
 .legend details:not([open]) summary{padding:0}
+.search{background:#fff;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);width:min(260px,62vw)}
+.search form{display:flex}
+.search input{flex:1;min-width:0;border:0;padding:8px 10px;font-size:16px;border-radius:6px 0 0 6px;
+  background:transparent;color:#1a1a1a}
+.search button[type=submit]{border:0;border-left:1px solid #ddd;background:#f4f4f4;color:#1a1a1a;padding:0 12px;
+  font-size:15px;border-radius:0 6px 6px 0;cursor:pointer}
+.search .results{border-top:1px solid #ddd;max-height:40vh;overflow:auto}
+.search .results button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eee;
+  background:#fff;color:#1a1a1a;padding:8px 10px;font-size:13px;line-height:1.35;cursor:pointer}
+.search .msg{padding:8px 10px;font-size:13px;color:#555}
 .popup h3{margin:0 0 4px;font-size:14px}
 .popup .q{font-style:italic;color:#555;margin:6px 0}
 .popup .warn{color:#a15c00}
@@ -70,6 +80,62 @@ legend.onAdd = function(){
   return div;
 };
 legend.addTo(map);
+// Place search with OpenStreetMap's Nominatim. Runs only on submit, at most once per second:
+// its usage policy forbids search-as-you-type on the free service.
+const search = L.control({position: "topright"});
+search.onAdd = function(){
+  const div = L.DomUtil.create("div", "search");
+  div.innerHTML = '<form role="search"><input type="search" name="q" placeholder="Search a place" ' +
+    'aria-label="Search a place" enterkeyhint="search" autocomplete="off">' +
+    '<button type="submit" aria-label="Search">Go</button></form><div class="results" hidden></div>';
+  L.DomEvent.disableClickPropagation(div);
+  L.DomEvent.disableScrollPropagation(div);
+  const form = div.querySelector("form"), input = form.q, go = form.querySelector("button");
+  const results = div.querySelector(".results");
+  let last = 0, pin = null;
+  function show(h){ results.innerHTML = h; results.hidden = !h; }
+  function clearPin(){ if (pin) { pin.remove(); pin = null; } }
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    const q = input.value.trim();
+    if (!q || go.disabled) return;
+    go.disabled = true;
+    show('<div class="msg">Searching…</div>');
+    setTimeout(function(){
+      last = Date.now();
+      const b = map.getBounds();
+      const box = [b.getWest(), b.getNorth(), b.getEast(), b.getSouth()].map(function(v){return v.toFixed(5);}).join(",");
+      fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&viewbox=" + box +
+            "&q=" + encodeURIComponent(q), {headers: {"Accept": "application/json"}})
+        .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function(list){
+          if (!list.length) { show('<div class="msg">No places found. Try adding the area or city.</div>'); return; }
+          show(list.map(function(p, i){
+            return '<button type="button" data-i="' + i + '">' + esc(p.display_name) + '</button>';
+          }).join(""));
+          results.querySelectorAll("button").forEach(function(el){
+            el.addEventListener("click", function(ev){
+              // show("") below removes this button, so Leaflet can't tell the click came from the
+              // search box and would treat it as a map click that closes the new pin's popup.
+              L.DomEvent.stopPropagation(ev);
+              const p = list[+el.dataset.i], bb = p.boundingbox.map(Number);
+              clearPin();
+              pin = L.marker([+p.lat, +p.lon], {title: p.display_name}).addTo(map).bindPopup(esc(p.display_name));
+              map.fitBounds([[bb[0], bb[2]], [bb[1], bb[3]]], {maxZoom: 18});
+              pin.openPopup();
+              show("");
+              input.blur();
+            });
+          });
+        })
+        .catch(function(){ show('<div class="msg">Search failed. It needs an internet connection.</div>'); })
+        .finally(function(){ go.disabled = false; });
+    }, Math.max(0, last + 1000 - Date.now()));
+  });
+  input.addEventListener("search", function(){ if (!input.value) { show(""); clearPin(); } });  // the clear (×) button
+  return div;
+};
+search.addTo(map);
 </script>
 </body>
 </html>

@@ -133,6 +133,8 @@ def check_outputs(out: Path) -> None:
     assert page.count("</script>") == 2, "embedded data must not close the script tag"
     assert "Kerbside Sample Walk" in page and "599 m walked" in page and "8 min" in page
     assert "Large rain tree giving good shade" in page
+    assert "nominatim.openstreetmap.org/search" in page and 'role="search"' in page
+    assert 'addEventListener("input"' not in page, "no search-as-you-type (Nominatim policy)"
 
     report = (out / "report.md").read_text(encoding="utf-8")
     assert report.startswith("# Kerbside Sample Walk")
