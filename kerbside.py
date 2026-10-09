@@ -21,6 +21,7 @@ import os
 import re
 import shutil
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -496,6 +497,7 @@ def extract_findings(segments: list[dict], model: str, cache_path: Path, fresh: 
     findings: list[dict] = []
     seen: set[tuple] = set()
     try:
+        t0, lines_done = time.monotonic(), 0
         for n, chunk in enumerate(chunks, 1):
             print(f"  Chunk {n}/{len(chunks)} (lines {chunk[0]['id']}-{chunk[-1]['id']})...", flush=True)
             for f in extract_chunk(chunk, model, host):
@@ -503,7 +505,11 @@ def extract_findings(segments: list[dict], model: str, cache_path: Path, fresh: 
                 if sig not in seen:
                     seen.add(sig)
                     findings.append(f)
-            print(f"    {len(findings)} finding(s) so far")
+            lines_done += len(chunk)
+            left = (time.monotonic() - t0) / lines_done * (len(segments) - lines_done)
+            eta = "" if n == len(chunks) else \
+                ", less than a minute left" if left < 60 else f", about {round(left / 60)} min left"
+            print(f"    {len(findings)} finding(s) so far{eta}")
     finally:
         unload_model(model, host)  # give the RAM back as soon as we're done (or interrupted)
     write_json(cache_path, {**key, "findings": findings})
