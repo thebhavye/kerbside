@@ -37,6 +37,10 @@ h1{font-size:1.15rem;margin:0 0 4px}
 .popup h3{margin:0 0 4px;font-size:14px}
 .popup .q{font-style:italic;color:#555;margin:6px 0}
 .popup .warn{color:#a15c00}
+.locate a{display:flex;align-items:center;justify-content:center;color:#333}
+#toast{position:absolute;bottom:56px;left:50%;transform:translateX(-50%);z-index:1000;max-width:80%;
+  background:rgba(30,30,30,.9);color:#fff;padding:8px 12px;border-radius:6px;font-size:13px;text-align:center}
+#toast[hidden]{display:none}
 .popup .copy{display:block;width:100%;margin-top:8px;padding:8px;border:1px solid #ccc;border-radius:6px;
   background:#f4f4f4;color:#1a1a1a;font-size:14px;cursor:pointer}
 @media (max-width:600px){h1{font-size:1rem}.stats{font-size:.78rem}.legend{font-size:11px}}
@@ -185,6 +189,44 @@ search.onAdd = function(){
   return div;
 };
 search.addTo(map);
+// "Show my location": handy when standing on the street with the map open.
+function toast(msg){
+  let t = document.getElementById("toast");
+  if (!t) { t = document.createElement("div"); t.id = "toast"; document.getElementById("map").appendChild(t); }
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(function(){ t.hidden = true; }, 4000);
+}
+const here = {dot: null, ring: null};
+const locate = L.control({position: "topleft"});
+locate.onAdd = function(){
+  const div = L.DomUtil.create("div", "leaflet-bar locate");
+  div.innerHTML = '<a href="#" role="button" title="Show my location" aria-label="Show my location">' +
+    '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/>' +
+    '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>' +
+    '<path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2"/></svg></a>';
+  L.DomEvent.disableClickPropagation(div);
+  div.querySelector("a").addEventListener("click", function(ev){
+    ev.preventDefault();
+    if (!navigator.geolocation) { toast("This browser can't share your location."); return; }
+    toast("Finding your location…");
+    map.locate({setView: true, maxZoom: 18, enableHighAccuracy: true, timeout: 15000});
+  });
+  return div;
+};
+locate.addTo(map);
+map.on("locationfound", function(e){
+  const acc = Math.round(e.accuracy);
+  if (here.ring) { here.ring.remove(); here.dot.remove(); }
+  here.ring = L.circle(e.latlng, {radius: e.accuracy, color: "#1a73e8", weight: 1, fillOpacity: 0.1, interactive: false}).addTo(map);
+  here.dot = L.circleMarker(e.latlng, {radius: 7, color: "#fff", weight: 2, fillColor: "#1a73e8", fillOpacity: 1})
+    .addTo(map).bindPopup("You are here (accurate to about " + acc + " m)");
+  toast("You are here, accurate to about " + acc + " m.");
+});
+map.on("locationerror", function(e){
+  toast(e.code === 1 ? "Location permission was denied. Allow it in your browser settings to use this."
+                     : "Couldn't find your location. Try again outdoors.");
+});
 </script>
 </body>
 </html>
