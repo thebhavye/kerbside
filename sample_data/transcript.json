@@ -1,0 +1,101 @@
+{
+  "audio_file": "sample_walk.m4a",
+  "whisper_model": "small",
+  "requested_language": null,
+  "task": "transcribe",
+  "timestamps": "word",
+  "language": "en",
+  "duration": 506.0,
+  "segments": [
+    {
+      "id": 1,
+      "start": 2.0,
+      "end": 5.0,
+      "text": "Okay, starting the walk from the bus stop."
+    },
+    {
+      "id": 2,
+      "start": 20.0,
+      "end": 24.0,
+      "text": "Footpath is broken here, big crack and one slab is missing."
+    },
+    {
+      "id": 3,
+      "start": 25.0,
+      "end": 28.0,
+      "text": "Someone could easily trip on this at night."
+    },
+    {
+      "id": 4,
+      "start": 55.0,
+      "end": 59.0,
+      "text": "Drain is blocked, lots of plastic in it."
+    },
+    {
+      "id": 5,
+      "start": 90.0,
+      "end": 93.0,
+      "text": "Okay, turning left now."
+    },
+    {
+      "id": 6,
+      "start": 110.0,
+      "end": 115.0,
+      "text": "Huge rain tree here, nice shade."
+    },
+    {
+      "id": 7,
+      "start": 140.0,
+      "end": 144.0,
+      "text": "Cars parked fully on the footpath, I have to walk on the road."
+    },
+    {
+      "id": 8,
+      "start": 180.0,
+      "end": 183.0,
+      "text": "Um, let me see."
+    },
+    {
+      "id": 9,
+      "start": 210.0,
+      "end": 214.0,
+      "text": "Streetlight not working, this is pole number forty two."
+    },
+    {
+      "id": 10,
+      "start": 250.0,
+      "end": 254.0,
+      "text": "Garbage dumped near the corner, smells bad."
+    },
+    {
+      "id": 11,
+      "start": 300.0,
+      "end": 303.0,
+      "text": "Water logging here even though it rained two days ago."
+    },
+    {
+      "id": 12,
+      "start": 340.0,
+      "end": 344.0,
+      "text": "Footpath here is nice and wide, really good."
+    },
+    {
+      "id": 13,
+      "start": 400.0,
+      "end": 404.0,
+      "text": "No zebra crossing at this junction and vehicles come very fast."
+    },
+    {
+      "id": 14,
+      "start": 470.0,
+      "end": 473.0,
+      "text": "Okay, that's the end of the walk."
+    },
+    {
+      "id": 15,
+      "start": 500.0,
+      "end": 504.0,
+      "text": "Oh, open drain right next to the school gate, no cover."
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+.pytest_cache/
+kerbside_out/
+kerbside_sample_out/
+*.m4a

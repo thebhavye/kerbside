@@ -1,0 +1,4 @@
+faster-whisper>=1.0
+gpxpy>=1.6
+requests>=2.31
+tzdata
